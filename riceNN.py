@@ -5,7 +5,7 @@ from torch import nn, optim
 from skorch import NeuralNetClassifier
 from sklearn.model_selection import GridSearchCV
 from torch.utils.data import DataLoader, random_split, TensorDataset
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
 
 
@@ -30,7 +30,7 @@ class NeuralNetwork(nn.Module):
         self.input = nn.Linear(input_val, hidden_layers[0]).to(torch.float32)
         # nn.Module is basically python's list that can store modules.
         self.hidden = nn.ModuleList([nn.Linear(hidden_layers[i], hidden_layers[i+1]).to(torch.float32) for i in range(len(hidden_layers) - 1)])
-        self.output = nn.Linear(hidden_layers[-1], 2).to(torch.float32)
+        self.output = nn.Linear(hidden_layers[-1], 1).to(torch.float32)
         self.sigmoid = nn.Sigmoid()
     def forward(self, x):
         x = self.sigmoid(self.input(x))
@@ -47,19 +47,19 @@ df = pd.read_csv("riceclass.csv")
 df_input = df.drop(["id", "Class"], axis = 1)
 df_output = df["Class"]
 
-# Apply one hot encoding
-oh_encoder = OneHotEncoder()
-df_output = pd.get_dummies(df_output, dtype = float)
-print(df_output)
+# Apply label encoding
+label_encoder = LabelEncoder()
+df_output = label_encoder.fit_transform(df_output)
 
 # Min Max Scalar
 scale = MinMaxScaler(feature_range=(0, 1))
 input_rescale = scale.fit_transform(df_input)
 df_input = pd.DataFrame(data = input_rescale, columns = df_input.columns)
 
+
 # 
 inputTensor = torch.tensor(df_input.to_numpy(), dtype = torch.float32)
-outputTensor = torch.tensor(df_output.to_numpy()).reshape(-1, 2)
+outputTensor = torch.tensor(df_output, dtype = torch.float32)
 
 # Train Test Split (80% Train)
 tensorDf = torch.utils.data.TensorDataset(inputTensor, outputTensor)
@@ -84,14 +84,14 @@ optimize = optim.Adam(model.parameters(), lr = learning_rate)
 
 train_data_loader = DataLoader(train_df, batch_size = 300, shuffle = True)
 
-for epochs in range(1):
+for epochs in range(amount_epochs):
     for input_val, output_val in train_data_loader:
         optimize.zero_grad()
         # Use the model with the input data, where result are the outputs.
         result = model(input_val)
         # Back propagation with optimizer
         # view transposes the output_val for comparison
-        lossResult = loss(result, output_val)
+        lossResult = loss(result, output_val.view(-1,1))
         lossResult.backward()
         optimize.step()
 
@@ -109,11 +109,10 @@ total_ans = 0
 for input_val, output_val in test_data_loader:
     # Use the model with the input data, where result are the outputs.
     result = model(input_val)
-    print(result)
     round_result = torch.round(torch.sigmoid(result)) # Rounds the answer so that it goes to 0 or 1 for MSE analysis
-    total_ans += output_val.size(0) * 2 # * 2 since there's 2 columns, so the denominator has to be doubled
+    total_ans += output_val.view(-1,1).size(0)
     # item() converts from torch to python integer
-    correct_ans += (round_result == output_val).sum().item()
+    correct_ans += (round_result == output_val.view(-1,1)).sum().item()
 print("Accuracy: " + str(correct_ans/total_ans * 100))
 
 
@@ -127,6 +126,7 @@ scikit_model = NeuralNetClassifier(
     batch_size = 300,
     criterion= nn.BCEWithLogitsLoss(),
     iterator_train__shuffle=True
+
 )
 
 # The parameter that's getting hypertune (This project doesn't require the input layer to be hypertuned since the dataset assumes all parameters are necessary)
@@ -137,9 +137,9 @@ param_grid = {
     'module__hidden_layers': [[128, 128, 128], [32, 32],[12,24,48], [7,7,7], [32, 128, 32]]
 }
 
-grid = GridSearchCV(estimator=scikit_model, param_grid=param_grid, cv=10, scoring ='accuracy', n_jobs = -1)
+grid = GridSearchCV(estimator=scikit_model, param_grid=param_grid, cv=5, scoring ='accuracy', n_jobs = -1)
 # Convert the datatype for df_input and df_output to numpy float 32
-grid_result = grid.fit(inputTensor, y = outputTensor)
+grid_result = grid.fit(df_input.to_numpy(dtype=np.float32), df_output.reshape(-1, 1).astype(np.float32))
 
 # The best parameters to use.
 print(str(grid_result.best_params_))
