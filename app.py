@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 # Comparison
 # Receiver Operating Characterisc curve
 
+# Credits to Sarvesh Krishan for the initial development of the streamlit website.
+# I debugged the error of the wensite constantly displaying the same answer by applying MinMaxScaler to the user's input.
 
 import numpy as np
 import pandas as pd
