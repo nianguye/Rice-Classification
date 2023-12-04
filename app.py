@@ -74,4 +74,5 @@ def gui_predict():
     obs = pd.DataFrame(data = X_train_obs_scaled)
     st.success('Logistic Regression predicted ' + logreg.predict(obs) + ', K-Nearest Neighbors predicted ' + knn.predict(obs) + ', and Neural Network predicted ' + mlp.predict(obs))
 
-st.button('Predict', on_click=gui_predict)
+if st.button('Predict'):
+    gui_predict()
