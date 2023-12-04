@@ -15,7 +15,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, LabelEncoder
 from sklearn.metrics import roc_curve, auc
 from sklearn.neural_network import MLPClassifier
 
-import matplotlib.pyplot as plt
 import streamlit as st
 
 # Load the data
