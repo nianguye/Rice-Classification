@@ -40,12 +40,12 @@ X_train_nn_scaled = scaler_nn.fit_transform(X_train)
 X_test_nn_scaled = scaler_nn.transform(X_test)
 
 
-# Logistic Regression
+# Logistic Regression, developed by Dylan welch
 logreg = LogisticRegression(max_iter=1000)
 logreg.fit(X_train_lr_scaled, y_train)
 
 
-# K-Nearest Neighbors
+# K-Nearest Neighbors, developed by Tom Tang
 knn = KNeighborsClassifier(n_neighbors=65)  # Assuming 65 is the best k value from your tuning
 knn.fit(X_train_knn_scaled, y_train)
 
